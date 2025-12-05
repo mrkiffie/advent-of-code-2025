@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 const INPUT: &str = include_str!("./input.txt");
 
 pub fn main() {
@@ -6,8 +8,8 @@ pub fn main() {
 }
 
 fn solve(input: &str) -> usize {
-    let mut inventory = vec![];
-    let mut fresh_ranges = vec![];
+    let mut inventory = Vec::with_capacity(1024);
+    let mut fresh_ranges = Vec::with_capacity(256);
     let mut blank_lines = false;
     for line in input.trim().lines() {
         if line.is_empty() {
@@ -23,10 +25,28 @@ fn solve(input: &str) -> usize {
         }
     }
 
-    inventory
-        .iter()
-        .filter(|id| fresh_ranges.iter().any(|range| range.contains(*id)))
-        .count()
+    inventory.sort_unstable();
+    fresh_ranges.sort_by(|a, b| a.start().cmp(b.start()));
+
+    let mut fresh_ranges = VecDeque::from(fresh_ranges);
+    let mut active_range = fresh_ranges.pop_front().unwrap();
+    let mut count = 0;
+    for id in inventory {
+        while id > *active_range.end() {
+            if let Some(next_range) = fresh_ranges.pop_front() {
+                active_range = next_range;
+            } else {
+                return count;
+            }
+        }
+        if id < *active_range.start() {
+            continue;
+        }
+        if id <= *active_range.end() {
+            count += 1;
+        }
+    }
+    count
 }
 
 #[cfg(test)]
